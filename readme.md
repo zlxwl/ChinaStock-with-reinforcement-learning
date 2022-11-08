@@ -1,1 +1,1 @@
-apply reinforcement learning in chinise stock
+apply reinforcement learning method in Chinese stock
