@@ -38,13 +38,12 @@ class DRLAgent:
     @staticmethod
     def prediction(model: Any, env: StockLearningEnv) -> pd.DataFrame:
         test_env, test_obs = env.get_sb_env()
+        test_env.reset()
 
         account_memory = []
         actions_memory = []
-        test_env.reset()
 
         len_env = len(env.df.index.unique())
-
         for i in range(len_env):
             action, _states = model.predict(test_obs)
             test_obs, _, dones, _ = test_env.step(action)
