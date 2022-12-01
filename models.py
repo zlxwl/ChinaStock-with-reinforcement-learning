@@ -27,6 +27,7 @@ NOISE = {
     'ornstein_unlenbeck': OrnsteinUhlenbeckActionNoise
 }
 
+
 class DRLAgent:
     def __init__(self, env: StockLearningEnv):
         self.env = env
@@ -56,35 +57,34 @@ class DRLAgent:
         return account_memory[0], actions_memory[0]
 
     def get_model(self, model_name: str,
-                        policy: str='MlpPolicy',
-                        policy_kwargs: dict=None,
-                        model_kwargs: dict=None,
-                        verbose: int=1
-                        )-> Any:
+                  policy: str = 'MlpPolicy',
+                  policy_kwargs: dict = None,
+                  model_kwargs: dict = None,
+                  verbose: int = 1
+                  ) -> Any:
         if model_name not in MODELS:
-            range NotImplementedError('model not exist')
+            raise NotImplementedError('model not exist')
 
         if model_kwargs is None:
             model_kwargs = MODEL_KWARGS[model_name]
 
         if "action_noise" in model_kwargs:
             n_actions = self.env.action_space.shape[-1]
-            model_kwargs['action_noise'] =  NOISE[model_kwargs['action_noise']](
-                mean = np.zeros(n_actions), sigma = 0.1 * np.ones(n_actions)
+            model_kwargs['action_noise'] = NOISE[model_kwargs['action_noise']](
+                mean=np.zeros(n_actions), sigma=0.1 * np.ones(n_actions)
             )
 
         print(model_kwargs)
 
         model = MODELS[model_name](
-            policy = policy,
-            env = self.env,
-            tensorboard_log = '{}/{}'.format(config.TENSORBOARD_LOG_DIR, model_name),
+            policy=policy,
+            env=self.env,
+            tensorboard_log='{}/{}'.format(config.TENSORBOARD_LOG_DIR, model_name),
             verbose=verbose,
-            policy_kwargs=policy_kwargs
+            policy_kwargs=policy_kwargs,
             **model_kwargs
         )
         return model
-
 
 
 if __name__ == '__main__':
