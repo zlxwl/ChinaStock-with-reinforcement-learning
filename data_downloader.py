@@ -70,7 +70,7 @@ class TuDataDownLoader:
 
         df = df.dropna()
         df = df.reset_index(drop=True)
-        df = df.sort_values(by=['date', 'tic']).result_index(drop=True)
+        df = df.sort_values(by=['date', 'tic']).reset_index(drop=True)
         print('dateframe size {}'.format(df.shape))
         return df
 
