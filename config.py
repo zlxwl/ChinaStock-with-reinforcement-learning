@@ -60,7 +60,7 @@ SAC_PARAMS = {
 
 # env params
 information_cols = TECHNICAL_INDICATOR_LIST + ['close', 'day', 'amount', 'change', 'daily_variance']
-END_PARAMS = {
+ENV_PARAMS = {
     'initial_amount': 1e6,
     'hmax': 5000,
     'currency': '￥',
