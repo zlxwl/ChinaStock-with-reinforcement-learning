@@ -26,12 +26,12 @@ class StockLearningEnv(gym.Env):
     def __init__(
             self,
             df: pd.DataFrame,
-            bus_cost_pct: float = 3e-3,
+            buy_cost_pct: float = 3e-3,
             sell_cost_pct: float = 3e-3,
             data_col_name: str = 'date',
             hmax: int = 10,
             print_verbosity: int = 10,
-            initial_mount: float = 1e6,
+            initial_amount: float = 1e6,
             daily_information_cols: List = ['open', 'close', 'high', 'low', 'volume'],
             cache_indicator_data: bool = True,
             random_start: bool = True,
@@ -48,16 +48,16 @@ class StockLearningEnv(gym.Env):
 
         self.df = self.df.set_index(data_col_name)
         self.hmax = hmax
-        self.initial_mount = initial_mount
+        self.initial_mount = initial_amount
         self.print_verbosity = print_verbosity
-        self.bus_cost_pct = bus_cost_pct
+        self.bus_cost_pct = buy_cost_pct
         self.sell_cost_pct = sell_cost_pct
         self.daily_information_cols = daily_information_cols
         self.cache_indicator_data = cache_indicator_data
 
         self.state_space = (1 + len(self.assets) + len(self.assets) * len(self.daily_information_cols))
-        self.action_space = spaces.Box(low=-np.inf, high=np.inf, shape=(len(self.assets), ))
-        self.observation_space = spaces.Box(low=-np.inf, high=np.inf, shape=(self.state_space, ))
+        self.action_space = spaces.Box(low=-np.inf, high=np.inf, shape=(len(self.assets),))
+        self.observation_space = spaces.Box(low=-np.inf, high=np.inf, shape=(self.state_space,))
 
         self.turbulence = 0
         self.episode = -1
@@ -71,10 +71,11 @@ class StockLearningEnv(gym.Env):
             data1 = [stock1 * cols, stock2 * cols, ...]  stock
             """
             print('加载缓存数据')
-            self.cache_data = [self.get_date_vector(i) for i, _ in enumerate(self.dates)]
+            # self.cache_data = [self.get_date_vector(i) for i, _ in enumerate(self.dates)]
+            self.cache_data = [self.stock_order_by_day(date) for date in self.dates]
             print('数据缓存成功')
 
-    def seed(self, seed):
+    def seed(self, seed=None):
         if seed is None:
             seed = int(round(time.time()) * 1000)
         random.seed(seed)
@@ -85,7 +86,7 @@ class StockLearningEnv(gym.Env):
 
     @property
     def holdings(self):
-        return self.state_memory[-1][1: len(self.assets)+1]
+        return self.state_memory[-1][1: len(self.assets) + 1]
 
     @property
     def cash_on_hand(self):
@@ -105,10 +106,25 @@ class StockLearningEnv(gym.Env):
             trunc_df = self.df.loc[[date]]
             res = []
             for asset in self.assets:
-                tmp_res  = trunc_df[trunc_df[self.stock_col] == asset]
+                tmp_res = trunc_df[trunc_df[self.stock_col] == asset]
                 res += tmp_res.loc[date, cols].to_list()
             assert len(res) == len(self.assets) * len(cols)
             return res
+
+    def stock_order_by_day(self, date, cols=None):
+        # list  [date_1, date_2, ... date_n]  data_1 = [tic * col]
+        res = []
+        trunc_df = self.df.loc[date]
+        for asset in self.assets:
+            tmp_res = trunc_df[trunc_df[self.stock_col] == asset]
+
+            if tmp_res.shape[0] == 0:
+                tmp_res = [asset] + (tmp_res.shape[1] - 1) * [0]
+                res += tmp_res
+            else:
+                res += tmp_res.loc[date].to_list()
+        assert len(res) == len(self.assets) * len(cols)
+        return res
 
     def reset(self):
         self.seed()
@@ -141,7 +157,7 @@ class StockLearningEnv(gym.Env):
 
         return init_state
 
-    def return_terminal(self, reason: str='Last Date', reward: int=0):
+    def return_terminal(self, reason: str = 'Last Date', reward: int = 0):
         state = self.state_memory[-1]
         self.log_step(reason=reason, terminal_reward=reward)
         self.logger = utils.configure_logger()
@@ -154,10 +170,12 @@ class StockLearningEnv(gym.Env):
         self.logger.record('environment/total_reward_pct', (reward_pct - 1) * 100)
         self.logger.record('environment/total_trades', self.num_trades)
         self.logger.record('environment/avg_daily_trades', self.num_trades / self.current_step)
-        self.logger.record('environment/avg_daily_trades_per_asset', self.num_trades / self.current_step/ len(self.assets))
+        self.logger.record('environment/avg_daily_trades_per_asset',
+                           self.num_trades / self.current_step / len(self.assets))
         self.logger.record('environment/completed_steps', self.current_step)
         self.logger.record('environment/sum_rewards', np.sum(self.account_information['reward']))
-        self.logger.record('environment/retreat_proportion', self.account_information['total_assets'][-1] / self.max_total_assets)
+        self.logger.record('environment/retreat_proportion',
+                           self.account_information['total_assets'][-1] / self.max_total_assets)
         return state, reward, True, {}
 
     def log_header(self):
@@ -175,7 +193,7 @@ class StockLearningEnv(gym.Env):
             ))
             self.print_header = True
 
-    def log_step(self, reason: str, terminal_reward: float=None):
+    def log_step(self, reason: str, terminal_reward: float = None):
         if terminal_reward is None:
             terminal_reward = self.account_information['reward'][-1]
         assets = self.account_information['total_assets'][-1]
@@ -189,9 +207,9 @@ class StockLearningEnv(gym.Env):
             reason,
             f"{self.currency}{'{:0,.0f}'.format(float(self.account_information['cash'][-1]))}",
             f"{self.currency}{'{:0,.0f}'.format(float(self.account_information['assets']))}",
-            f"{terminal_reward*100:0.5f}%",
-            f"{(gl_pct - 1)*100:0.5f}%",
-            f"{retreat_pct*100:0.2f}%"
+            f"{terminal_reward * 100:0.5f}%",
+            f"{(gl_pct - 1) * 100:0.5f}%",
+            f"{retreat_pct * 100:0.2f}%"
         ]
         self.episode_history.append(rec)
         print(self.template.format(*rec))
@@ -219,8 +237,8 @@ class StockLearningEnv(gym.Env):
                 self.max_total_assets = assets
             else:
                 retreat = assets / self.max_total_assets - 1
-            reward = assets / self.initial_mount - 1 # (收益率)
-            reward += retreat # reward = gc_pct + retreat
+            reward = assets / self.initial_mount - 1  # (收益率)
+            reward += retreat  # reward = gc_pct + retreat
             return reward
 
     def step(self, actions: np.array):
@@ -249,7 +267,7 @@ class StockLearningEnv(gym.Env):
 
             # then buy
             buys = np.clip(transactions, np.inf, 0)
-            spend = np.dot(buys , self.closing)
+            spend = np.dot(buys, self.closing)
             costs += spend * self.bus_cost_pct
 
             if (spend + costs) > coh:
@@ -267,7 +285,7 @@ class StockLearningEnv(gym.Env):
 
             self.date_index += 1
             state = (
-                [coh] + list(holdings_updates) + self.get_date_vector(self.date_index)
+                    [coh] + list(holdings_updates) + self.get_date_vector(self.date_index)
             )
             self.state_memory.append(state)
             return state, reward, False, {}
@@ -275,7 +293,8 @@ class StockLearningEnv(gym.Env):
     def get_sb_env(self):
         def get_self():
             return deepcopy(self)
-        e = DummyVecEnv([get_self()])
+
+        e = DummyVecEnv([get_self])
         obs = e.reset()
         return e, obs
 
@@ -283,7 +302,7 @@ class StockLearningEnv(gym.Env):
         def get_self():
             return deepcopy(self)
 
-        e = SubprocVecEnv([get_self() for _ in range(n)], start_method='fork')
+        e = SubprocVecEnv([get_self for _ in range(n)], start_method='fork')
         obs = e.reset()
         return e, obs
 

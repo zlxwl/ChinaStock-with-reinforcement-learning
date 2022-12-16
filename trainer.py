@@ -17,7 +17,7 @@ class Trainer:
                  model_name='a2c',
                  total_timesteps=200000,
                  train_dir='train_file',
-                 data_dir='data_dir') -> None:
+                 data_dir='data_file') -> None:
         self.model_name = model_name
         self.total_timesteps = total_timesteps
         self.train_dir = train_dir

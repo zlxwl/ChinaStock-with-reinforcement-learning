@@ -7,7 +7,7 @@
 # Author     ：Zhong Lei
 """
 from typing import Any
-from stable_baselines3 import DDPG, A2C, PPO, SAC, TD3, B
+from stable_baselines3 import DDPG, A2C, PPO, SAC, TD3
 from stable_baselines3.common.noise import NormalActionNoise, OrnsteinUhlenbeckActionNoise
 import config
 from env import StockLearningEnv
