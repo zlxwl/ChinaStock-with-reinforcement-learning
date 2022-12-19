@@ -77,7 +77,7 @@ class TuDataDownLoader:
 
 if __name__ == '__main__':
     # ========== test pull_data ==================
-    TuDataDownLoader(ticker_list=config.SSE_50[:2],
+    TuDataDownLoader(ticker_list=config.CSI_300[:2],
                      start_date=config.START_DATE,
                      endt_date=config.END_DATE,
                      tushare_token=config.TUSHARE_TOCKEN,

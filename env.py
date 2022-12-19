@@ -71,8 +71,8 @@ class StockLearningEnv(gym.Env):
             data1 = [stock1 * cols, stock2 * cols, ...]  stock
             """
             print('加载缓存数据')
-            # self.cache_data = [self.get_date_vector(i) for i, _ in enumerate(self.dates)]
-            self.cache_data = [self.stock_order_by_day(date) for date in self.dates]
+            self.cache_data = [self.get_date_vector(i) for i, _ in enumerate(self.dates)]
+            # self.cache_data = [self.stock_order_by_day(date) for date in self.dates]
             print('数据缓存成功')
 
     def seed(self, seed=None):
@@ -93,7 +93,7 @@ class StockLearningEnv(gym.Env):
         return self.state_memory[-1][0]
 
     @property
-    def closing(self):
+    def closings(self):
         return np.array(self.get_date_vector(self.date_index, cols=['close']))
 
     def get_date_vector(self, date: int, cols: List = None):
@@ -123,12 +123,12 @@ class StockLearningEnv(gym.Env):
                 res += tmp_res
             else:
                 res += tmp_res.loc[date].to_list()
-        assert len(res) == len(self.assets) * len(cols)
+        # assert len(res) == len(self.assets) * len(cols)
         return res
 
     def reset(self):
         self.seed()
-        self.num_trades = 0
+        self.sum_trades = 0
         self.max_total_assets = self.initial_mount
         if self.random_start:
             self.starting_point = random.choice(range(int(len(self.dates) * 0.5)))
@@ -168,10 +168,10 @@ class StockLearningEnv(gym.Env):
 
         reward_pct = gl_pct
         self.logger.record('environment/total_reward_pct', (reward_pct - 1) * 100)
-        self.logger.record('environment/total_trades', self.num_trades)
-        self.logger.record('environment/avg_daily_trades', self.num_trades / self.current_step)
+        self.logger.record('environment/total_trades', self.sum_trades)
+        self.logger.record('environment/avg_daily_trades', self.sum_trades / self.current_step)
         self.logger.record('environment/avg_daily_trades_per_asset',
-                           self.num_trades / self.current_step / len(self.assets))
+                           self.sum_trades / self.current_step / len(self.assets))
         self.logger.record('environment/completed_steps', self.current_step)
         self.logger.record('environment/sum_rewards', np.sum(self.account_information['reward']))
         self.logger.record('environment/retreat_proportion',
@@ -206,7 +206,7 @@ class StockLearningEnv(gym.Env):
             self.date_index - self.starting_point,
             reason,
             f"{self.currency}{'{:0,.0f}'.format(float(self.account_information['cash'][-1]))}",
-            f"{self.currency}{'{:0,.0f}'.format(float(self.account_information['assets']))}",
+            f"{self.currency}{'{:0,.0f}'.format(float(assets))}",
             f"{terminal_reward * 100:0.5f}%",
             f"{(gl_pct - 1) * 100:0.5f}%",
             f"{retreat_pct * 100:0.2f}%"
@@ -218,11 +218,11 @@ class StockLearningEnv(gym.Env):
         self.actions_memory.append(actions)
         actions = actions * self.hmax
 
-        actions = np.where(self.closing > 0, actions, 0)
+        actions = np.where(self.closings > 0, actions, 0)
         out = np.zeros_like(actions)
-        zero_or_not = self.closing != 0
+        zero_or_not = self.closings != 0
 
-        actions = np.divie(actions, self.closings, out=out, where=zero_or_not)
+        actions = np.divide(actions, self.closings, out=out, where=zero_or_not)
         actions = np.maximum(actions, -np.array(self.holdings))
         actions[actions == -0] = 0
         return actions
@@ -251,7 +251,7 @@ class StockLearningEnv(gym.Env):
         else:
             begin_cash = self.cash_on_hand
             assert min(self.holdings) >= 0
-            assert_value = np.dot(self.holdings, self.closing)
+            assert_value = np.dot(self.holdings, self.closings)
             self.account_information['asset_value'].append(assert_value)
             self.account_information['cash'].append(begin_cash)
             reward = self.get_reward()
@@ -261,13 +261,13 @@ class StockLearningEnv(gym.Env):
             # first sell
             transactions = self.get_transactions(actions)
             sells = -np.clip(transactions, -np.inf, 0)
-            proceeds = np.dot(sells, self.closing)
+            proceeds = np.dot(sells, self.closings)
             costs = proceeds * self.sell_cost_pct
             coh = begin_cash + proceeds
 
             # then buy
             buys = np.clip(transactions, np.inf, 0)
-            spend = np.dot(buys, self.closing)
+            spend = np.dot(buys, self.closings)
             costs += spend * self.bus_cost_pct
 
             if (spend + costs) > coh:

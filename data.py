@@ -135,7 +135,7 @@ class FeatureEngineer:
         date_list = list(pd.date_range(df['date'].min(), df['date'].max()).astype(str))
         combination = list(itertools.product(date_list, ticker_list))
 
-        df_full = pd.DataFrame(combination, columns=['date', 'tic']).merge(df, on=['date', 'tic'])
+        df_full = pd.DataFrame(combination, columns=['date', 'tic']).merge(df, on=['date', 'tic'], how='left')
         df_full = df_full[df_full['date'].isin(df['date'])].fillna(0)
         df_full = df_full.sort_values(['date', 'tic'], ignore_index=True)
         return df_full
@@ -151,4 +151,4 @@ if __name__ == '__main__':
     #                  endt_date=config.END_DATE,
     #                  tushare_token=config.TUSHARE_TOCKEN,
     #                  pull_index=False).pull_data()
-    Data().pull_data()
+    Data(ticker_list=config.CSI_300[:2]).pull_data()
