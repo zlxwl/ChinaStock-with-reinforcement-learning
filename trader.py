@@ -21,7 +21,7 @@ class Trader:
         self.model_name = model_name
         self.train_dir = train_dir
         self.data_dir = data_dir
-        self.train_dir = trade_dir
+        self.trade_dir = trade_dir
         self.create_trade_dir()
 
     def create_trade_dir(self):
@@ -41,6 +41,9 @@ class Trader:
                                                          env=env_trade)
             self.save_trade_result(account_value, actions)
             self.print_trade_result(account_value, actions)
+        else:
+            print("{} 文件夹中未找到 {} model，请先运行 trainer.py 或者将训练好的 {} model 放入 {} 中"
+                  .format(self.train_dir, self.model_name, self.model_name, self.train_dir))
 
     def get_trade_data(self) -> pd.DataFrame:
         trade_data_path = os.path.join(self.data_dir, 'trade.csv')
@@ -61,7 +64,7 @@ class Trader:
                                 verbose=0)
         model_dir = os.path.join(self.train_dir, '{}.model'.format(self.model_name))
         if os.path.exists(model_dir):
-            model.load(model_dir)
+            return model.load(model_dir)
         else:
             return None
 
