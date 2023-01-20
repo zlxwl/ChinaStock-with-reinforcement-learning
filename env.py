@@ -158,9 +158,10 @@ class StockLearningEnv(gym.Env):
         return init_state
 
     def return_terminal(self, reason: str = 'Last Date', reward: int = 0):
+        self.logger = utils.configure_logger()
+
         state = self.state_memory[-1]
         self.log_step(reason=reason, terminal_reward=reward)
-        self.logger = utils.configure_logger()
         gl_pct = self.account_information['total_assets'][-1] / self.initial_mount
 
         self.logger.record('environment/gain_loss_pct', (gl_pct - 1) * 100)
@@ -252,11 +253,12 @@ class StockLearningEnv(gym.Env):
             begin_cash = self.cash_on_hand
             assert min(self.holdings) >= 0
             assert_value = np.dot(self.holdings, self.closings)
-            self.account_information['asset_value'].append(assert_value)
             self.account_information['cash'].append(begin_cash)
+            self.account_information['asset_value'].append(assert_value)
+            self.account_information['total_assets'].append(assert_value + begin_cash)
+
             reward = self.get_reward()
             self.account_information['reward'].append(reward)
-            self.account_information['total_assets'].append(assert_value + begin_cash)
 
             # first sell
             transactions = self.get_transactions(actions)
@@ -266,7 +268,7 @@ class StockLearningEnv(gym.Env):
             coh = begin_cash + proceeds
 
             # then buy
-            buys = np.clip(transactions, np.inf, 0)
+            buys = np.clip(transactions, 0, np.inf)
             spend = np.dot(buys, self.closings)
             costs += spend * self.bus_cost_pct
 
