@@ -51,10 +51,10 @@ class DRLAgent:
                 account_memory = test_env.env_method(method_name='save_asset_memory')
                 actions_memory = test_env.env_method(method_name='save_action_memory')
             if dones[0]:
-                account_memory = test_env.env_method(method_name='save_asset_memory')
-                actions_memory = test_env.env_method(method_name='save_action_memory')
                 print('回测完成')
                 break
+            account_memory = test_env.env_method(method_name='save_asset_memory')
+            actions_memory = test_env.env_method(method_name='save_action_memory')
         return account_memory[0], actions_memory[0]
 
     def get_model(self, model_name: str,
