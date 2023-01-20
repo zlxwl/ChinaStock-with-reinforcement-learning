@@ -39,10 +39,9 @@ class DRLAgent:
     @staticmethod
     def prediction(model: Any, env: StockLearningEnv) -> pd.DataFrame:
         test_env, test_obs = env.get_sb_env()
-        test_env.reset()
-
         account_memory = []
         actions_memory = []
+        test_env.reset()
 
         len_env = len(env.df.index.unique())
         for i in range(len_env):
@@ -52,6 +51,8 @@ class DRLAgent:
                 account_memory = test_env.env_method(method_name='save_asset_memory')
                 actions_memory = test_env.env_method(method_name='save_action_memory')
             if dones[0]:
+                account_memory = test_env.env_method(method_name='save_asset_memory')
+                actions_memory = test_env.env_method(method_name='save_action_memory')
                 print('回测完成')
                 break
         return account_memory[0], actions_memory[0]
