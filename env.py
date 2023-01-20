@@ -313,7 +313,7 @@ class StockLearningEnv(gym.Env):
             return None
         else:
             self.account_information['date'] = self.dates[-len(self.account_information['cash']):]
-            return pd.DateFrame(self.account_information)
+            return pd.DataFrame(self.account_information)
 
     def save_action_memory(self):
         if self.current_step == 0:
@@ -321,7 +321,7 @@ class StockLearningEnv(gym.Env):
         else:
             return pd.DataFrame(
                 {
-                    'date': self.account_information[-len(self.account_information['cash']):],
+                    'date': self.dates[-len(self.account_information["cash"]):],
                     'actions': self.actions_memory,
                     'transactions': self.transaction_memory
                 }
