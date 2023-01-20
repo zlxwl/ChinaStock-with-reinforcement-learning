@@ -43,7 +43,7 @@ class Trainer:
                     log_interval=1,
                     tb_log_name='env_cashpenalty_highlr',
                     n_eval_episodes=1)
-        self.save_model()
+        self.save_model(model)
 
     def get_data(self):
         train_data_path = os.path.join(self.data_dir, 'train.csv')
@@ -83,7 +83,7 @@ def start_train():
                         type=str)
     parser.add_argument('--total_timesteps', '-tts',
                         dest='total_timesteps',
-                        default=2000000,
+                        default=2000,
                         help='set the total_timesteps when you train the model',
                         type=int)
     options = parser.parse_args()
